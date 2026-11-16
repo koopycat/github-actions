@@ -30,6 +30,7 @@ of assigning each pull request by hand.
 | Action | What it does | Default |
 | --- | --- | --- |
 | [Assign pull request](assign-pr/action.yml) | Adds an assignee when your workflow receives a PR event; keeps existing assignees. | `koopycat` |
+| [Request review](request-review/action.yml) | Requests a reviewer when your workflow receives a PR event. | `koopycat` |
 
 ## Quick start
 
@@ -59,6 +60,34 @@ referencing `@main` so its PRs exercise the current implementation.
 
 > Each repository needs this workflow file. Publishing a shared action does not
 > automatically enable it across your account. No checkout step is required.
+
+## Request a review
+
+CODEOWNERS review requests do not fire in private repositories on a free
+personal account. The `request-review` action fills that gap through the API.
+Add `.github/workflows/request-review.yml` to a repository:
+
+```yaml
+name: Request review on pull requests
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  request-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: koopycat/github-actions/request-review@v2.1.0
+```
+
+GitHub rejects review requests addressed to the pull request author, so
+self-authored pull requests are skipped with a notice; bot- and
+collaborator-authored pull requests get the review request. Use `with:
+reviewer: YOUR_USERNAME` for a different reviewer.
 
 ## Make it yours
 

@@ -1,0 +1,36 @@
+name: Request review
+description: Request a reviewer on the current pull request without replacing existing review requests.
+
+inputs:
+  reviewer:
+    description: GitHub username to request a review from, without the @ prefix.
+    required: false
+    default: koopycat
+
+runs:
+  using: composite
+  steps:
+    - name: Request pull request review
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REVIEWER: ${{ inputs.reviewer }}
+      run: |
+        : "${PR_NUMBER:?This action must run on a pull request event}"
+        if error=$(gh api --method POST \
+          "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/requested_reviewers" \
+          -f "reviewers[]=$REVIEWER" 2>&1); then
+          jq --exit-status --arg login "$REVIEWER" \
+            'any(.requested_reviewers[]; (.login | ascii_downcase) == ($login | ascii_downcase))' \
+            <<<"$error"
+        else
+          # GitHub rejects review requests addressed to the PR author; that is
+          # expected for self-authored pull requests and not an action failure.
+          if grep -qi 'pull request author' <<<"$error"; then
+            echo "::notice::Cannot request review from the pull request author; skipping."
+          else
+            printf '%s\n' "$error" >&2
+            exit 1
+          fi
+        fi
