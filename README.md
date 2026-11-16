@@ -80,6 +80,11 @@ To use a different assignee, add `with` to the `assign` job above:
 - **Unsuccessful assignment:** the job fails if the API response does not include
   the requested assignee, even if GitHub silently ignores the request.
 
+PRs created or reopened by another workflow using `GITHUB_TOKEN` do not trigger
+this assignment workflow. If that automation needs to trigger assignment, use a
+GitHub App token or a personal access token to create or reopen the PR. See
+[GitHub's event restrictions](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs).
+
 This is **assignment**, not a review request or a merge-approval requirement.
 
 ## Security by design
