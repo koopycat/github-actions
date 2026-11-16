@@ -25,18 +25,34 @@ else
     --jq '.[] | select(.isPrivate == false and .isArchived == false) | .name')
 fi
 
+if [ "${#repos[@]}" -eq 0 ]; then
+  echo "no public, non-archived repositories found for $owner" >&2
+  exit 1
+fi
+
 for repo in "${repos[@]}"; do
+  skipped=""
   for candidate in .github/CODEOWNERS CODEOWNERS docs/CODEOWNERS; do
     if gh api "repos/$owner/$repo/contents/$candidate" --jq '.name' >/dev/null 2>&1; then
-      echo "$repo: skipped, $candidate already exists"
-      continue 2
+      skipped="$candidate"
+      break
     fi
   done
+  if [ -n "$skipped" ]; then
+    echo "$repo: skipped, $skipped already exists"
+    continue
+  fi
 
-  branch=$(gh api "repos/$owner/$repo" --jq '.default_branch')
-  gh api -X PUT "repos/$owner/$repo/contents/$file_path" \
+  if ! branch=$(gh api "repos/$owner/$repo" --jq '.default_branch'); then
+    echo "$repo: failed to read default branch" >&2
+    continue
+  fi
+  if ! gh api -X PUT "repos/$owner/$repo/contents/$file_path" \
     -f message="Add CODEOWNERS assigning reviews to @$assignee" \
     -f content="$(printf '%s' "$content" | base64 | tr -d '\n')" \
-    -f branch="$branch" >/dev/null
+    -f branch="$branch" >/dev/null; then
+    echo "$repo: failed to create $file_path" >&2
+    continue
+  fi
   echo "$repo: created $file_path on $branch"
 done
