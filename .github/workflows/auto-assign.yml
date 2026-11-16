@@ -9,7 +9,8 @@ permissions:
 
 jobs:
   assign:
+    if: github.repository == 'koopycat/github-actions'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - uses: koopycat/github-actions/assign-pr@main
+      - uses: koopycat/github-actions/assign-pr@8187567197e9e29953e93e0455975a3f40133641 # v2

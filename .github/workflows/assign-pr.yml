@@ -1,0 +1,23 @@
+name: Assign pull request (legacy v1)
+
+on:
+  workflow_call:
+    inputs:
+      assignee:
+        description: GitHub username to assign, without the @ prefix.
+        type: string
+        required: false
+        default: koopycat
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Add pull request assignee
+        uses: koopycat/github-actions/assign-pr@8187567197e9e29953e93e0455975a3f40133641 # v2
+        with:
+          assignee: ${{ inputs.assignee }}
