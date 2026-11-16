@@ -1,0 +1,25 @@
+name: Assign pull request
+description: Add a pull request assignee without replacing existing assignees.
+
+inputs:
+  assignee:
+    description: GitHub username to assign, without the @ prefix.
+    required: false
+    default: koopycat
+
+runs:
+  using: composite
+  steps:
+    - name: Add pull request assignee
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        ASSIGNEE: ${{ inputs.assignee }}
+      run: |
+        : "${PR_NUMBER:?This action must run on a pull request event}"
+        gh api --method POST \
+          "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/assignees" \
+          -f "assignees[]=$ASSIGNEE" \
+          | jq --exit-status --arg login "$ASSIGNEE" \
+              'any(.assignees[]; (.login | ascii_downcase) == ($login | ascii_downcase))'

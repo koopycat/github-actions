@@ -9,4 +9,7 @@ permissions:
 
 jobs:
   assign:
-    uses: ./.github/workflows/assign-pr.yml
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: koopycat/github-actions/assign-pr@main
