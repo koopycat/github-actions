@@ -1,11 +1,40 @@
-# GitHub Actions
+<div align="center">
 
-Reusable GitHub Actions workflows for koopycat repositories. This repository is
-public so both public and private repositories can call its workflows.
+# koopycat / GitHub Actions
 
-## Automatically assign pull requests
+### Less PR housekeeping. One place to maintain it.
 
-Add `.github/workflows/auto-assign.yml` to the default branch of each repository:
+Reusable workflows for the repositories you look after. Start with automatic PR
+assignment: a small caller file, your repository's built-in token, and no manual
+trip to the Assignees sidebar.
+
+[Get started](#quick-start) · [Workflows](#workflows) · [Security](#security-by-design)
+
+</div>
+
+---
+
+## Your workflow, without the copy-paste maintenance
+
+- **Keep the logic in one place.** Repositories call a shared, versioned workflow
+  instead of carrying their own assignment scripts.
+- **Use it in public or private repositories.** No CODEOWNERS feature or paid
+  GitHub plan required; normal Actions usage limits still apply.
+- **Skip the extra credentials.** The calling repository's `GITHUB_TOKEN` handles
+  assignment. No personal access token, app installation, or inherited secrets.
+- **Leave the code alone.** The assignment job updates PR metadata. It never
+  checks out, builds, or executes code from the pull request.
+
+## Workflows
+
+| Workflow | What it does | Default |
+| --- | --- | --- |
+| [Assign pull request](.github/workflows/assign-pr.yml) | Adds an assignee when your caller receives a PR event; keeps existing assignees. | `koopycat` |
+
+## Quick start
+
+Add `.github/workflows/auto-assign.yml` to the **default branch** of any repository
+you want to enable:
 
 ```yaml
 name: Auto-assign pull requests
@@ -22,58 +51,65 @@ jobs:
     uses: koopycat/github-actions/.github/workflows/assign-pr.yml@v1
 ```
 
-New and reopened pull requests are assigned to `koopycat`, including drafts,
-fork pull requests, and pull requests authored by the assignee. Existing assignees
-are preserved. Already-open pull requests are not backfilled; reopening one
-triggers assignment.
+Open a pull request. `koopycat` will appear under **Assignees** once the workflow
+finishes. This repository [uses the workflow itself](.github/workflows/auto-assign.yml).
 
-The caller must run on a pull request event and grant `pull-requests: write`.
-`pull_request_target` supports fork pull requests without a personal access token.
-The reusable workflow automatically uses the calling repository's `GITHUB_TOKEN`.
-No secrets need to be configured or inherited. The workflow checks the API response
-and fails if the requested assignee was not added.
+> Each repository needs this caller file. Publishing a shared workflow does not
+> automatically enable it across your account.
 
-### Inputs
+## Make it yours
 
-| Input | Default | Meaning |
-| --- | --- | --- |
-| `assignee` | `koopycat` | One GitHub username, without `@`; must be assignable in the calling repository. |
-
-To choose a different assignee, add `with` to the calling job:
+To use a different assignee, add `with` to the `assign` job above:
 
 ```yaml
-jobs:
-  assign:
-    uses: koopycat/github-actions/.github/workflows/assign-pr.yml@v1
     with:
       assignee: YOUR_USERNAME
 ```
 
-Keep the trigger and permissions from the complete example above.
+| Input | Default | Accepted value |
+| --- | --- | --- |
+| `assignee` | `koopycat` | One GitHub username without `@`, assignable in the calling repository. |
 
-### Security and access
+### What to expect
 
-- This workflow updates PR metadata only. It does not check out or execute PR code.
-  Do not add untrusted PR checkout, builds, scripts, or artifacts to this privileged
-  workflow: `pull_request_target` can have write access even for fork PRs.
-- Actions must be enabled in the calling repository, and its Actions policies must
-  allow this reusable workflow.
-- Private callers do not publish their source code by calling a public workflow.
-  The job runs in the caller's context, with the caller's repository-scoped token.
-- No CODEOWNERS feature or paid GitHub plan is required. GitHub-hosted runner usage
-  in private repositories counts against the caller's Actions allowance.
-- `v1` is the compatible major-version reference. For an immutable dependency,
-  replace `@v1` with the full commit SHA behind that tag.
+- **New and reopened PRs:** assigned with the caller shown above.
+- **Drafts and self-authored PRs:** included, with no author exclusion.
+- **Fork PRs:** supported through `pull_request_target`.
+- **Existing assignees:** preserved; the workflow adds rather than replaces.
+- **Already-open PRs:** not backfilled. Reopen a PR to trigger the workflow.
+- **Unsuccessful assignment:** the job fails if the API response does not include
+  the requested assignee, even if GitHub silently ignores the request.
 
-### Rollout
+This is **assignment**, not a review request or a merge-approval requirement.
 
-Each repository needs its own caller file. Placing a workflow in this repository
-or in `koopycat/.github` does not enable it across all repositories automatically.
-The caller does not request reviews or enforce merge approval; it only adds an
-assignee. This repository uses the same reusable workflow for its own pull requests.
+## Security by design
 
-## References
+The reusable workflow receives the **caller's repository context and token**, not
+access to every repository on your account. It requests only `pull-requests: write`
+and needs no source checkout or third-party action dependency. Calling this public
+workflow does not make a private repository or its source code public.
 
-- [Reusing workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)
-- [Securely using pull_request_target](https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target)
-- [Assignee API](https://docs.github.com/en/rest/issues/assignees#add-assignees-to-an-issue)
+> **Keep this workflow metadata-only.** `pull_request_target` can grant write
+> access even for fork PRs. Do not add untrusted PR checkout, build commands,
+> scripts, or downloaded PR artifacts to the privileged job.
+
+Actions must be enabled in the caller, and its Actions policies must allow this
+reusable workflow. Private repositories use the caller's GitHub Actions allowance.
+
+## Choose your update policy
+
+Use **`@v1`** to receive compatible updates without changing each caller. For an
+immutable dependency, replace `@v1` with the full commit SHA behind the
+[`v1` tag](https://github.com/koopycat/github-actions/releases/tag/v1). GitHub resolves
+and runs that exact workflow revision.
+
+## Under the hood
+
+One GitHub-hosted job calls the
+[assignee API](https://docs.github.com/en/rest/issues/assignees#add-assignees-to-an-issue)
+using the preinstalled GitHub CLI, then checks the returned assignee list. GitHub
+manages PR assignees through the Issues API; no issue is created by this workflow.
+
+For the platform details, see GitHub's guides to
+[reusing workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)
+and [securely using `pull_request_target`](https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target).
