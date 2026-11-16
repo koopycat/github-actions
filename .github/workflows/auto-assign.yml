@@ -1,0 +1,12 @@
+name: Auto-assign pull requests
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    uses: ./.github/workflows/assign-pr.yml

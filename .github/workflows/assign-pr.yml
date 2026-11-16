@@ -1,0 +1,32 @@
+name: Assign pull request
+
+on:
+  workflow_call:
+    inputs:
+      assignee:
+        description: GitHub username to assign, without the @ prefix.
+        type: string
+        required: false
+        default: koopycat
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Add pull request assignee
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ASSIGNEE: ${{ inputs.assignee }}
+        run: |
+          : "${PR_NUMBER:?This workflow must be called from a pull request event}"
+          gh api --method POST \
+            "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/assignees" \
+            -f "assignees[]=$ASSIGNEE" \
+            | jq --exit-status --arg login "$ASSIGNEE" \
+                'any(.assignees[]; (.login | ascii_downcase) == ($login | ascii_downcase))'
